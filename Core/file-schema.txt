@@ -1,0 +1,60 @@
+@func = {
+    "name": String,
+    "pre_con": String|null,
+    "post_con": String,
+    "impl_details": String|null,
+    "params": [String...],
+    "ret_val": String|null,
+    "dependencies": [@dependency...],
+    "description": String|null
+}
+
+@UDP = {
+    "name": String,
+    "lang_type": "FP"|"OOP",
+    "language": String,
+    "functions": [@func...],
+    "class_vars": [String...],
+    "structs": [Map(String, String)...],
+    "dependencies": [@dependency...]
+}
+
+@dataset = {
+    "ID": String|null,
+    "properties": [String...]
+}
+
+@DB = {
+    "name": String,
+    "manage_sys": String,
+    "data_sets": [@dataset...]|null,
+    "dependencies": [@dependency...],
+    "src": String
+}
+
+@rsrc = {
+    "name": String,
+}
+
+@component = {
+    "name": String,
+    "UDPs": [@UDP...],
+    "DBs": [@DB...],
+    "dependencies": [@dependency...]
+}
+
+@dependency = {
+    "src": String,
+    "src_type": String,
+    "com_interface": String
+}
+
+@project = {
+    "ver": String,
+    "name": String,
+    "standards": [String...],
+    "system_group": String|null,
+    "components": [@component...],
+    "mains": [@UDP...],
+    "tools": [String...]
+}
