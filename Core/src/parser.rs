@@ -1,71 +1,125 @@
 use std::fs::File;
+use std::io::BufReader;
+use std::io::BufWriter;
 use std::collections::HashMap;
+use serde::{Deserialize, Serialize};
+use serde_json;
 
-struct Dependency {
-    src: String,
-    src_type: String,
-    com_interface: String
+#[derive(Deserialize, Serialize)]
+pub struct Dependency {
+    pub src: String,
+    pub src_type: String,
+    pub com_interface: String
 }
 
-struct Func {
-    name: String,
-    pre_con: String,
-    post_con: String,
-    impl_details: String,
-    params: Vec<String>,
-    ret_val: String,
-    dependencies: Vec<Dependency>,
-    description: String
+#[derive(Deserialize, Serialize)]
+pub struct Func {
+    pub name: String,
+    pub pre_con: String,
+    pub post_con: String,
+    pub impl_details: String,
+    pub params: Vec<String>,
+    pub ret_val: String,
+    pub dependencies: Vec<Dependency>,
+    pub description: String
 }
 
-struct DataSet {
-    ID: String,
-    properties: Vec<String>
+#[derive(Deserialize, Serialize)]
+pub struct DataSet {
+    pub ID: String,
+    pub properties: Vec<String>
 }
 
-struct DB {
-    name: String,
-    manage_sys: String,
-    data_sets: Vec<DataSet>,
-    dependencies: Vec<Dependency>,
-    src: String
+#[derive(Deserialize, Serialize)]
+pub struct DB {
+    pub name: String,
+    pub manage_sys: String,
+    pub data_sets: Vec<DataSet>,
+    pub dependencies: Vec<Dependency>,
+    pub src: String
 }
 
-struct rsrc {
-    name: String
+#[derive(Deserialize, Serialize)]
+pub struct rsrc {
+    pub name: String
 }
 
-struct UDP {
-    name: String,
-    lang_type: String,
-    language: String,
-    functions: Vec<Func>,
-    class_vars: Vec<String>,
-    structs: Vec<HashMap<String, String>>,
-    dependencies: Vec<Dependency>
+#[derive(Deserialize, Serialize)]
+pub struct UDP {
+    pub name: String,
+    pub lang_type: String,
+    pub language: String,
+    pub functions: Vec<Func>,
+    pub class_vars: Vec<String>,
+    pub structs: Vec<HashMap<String, String>>,
+    pub dependencies: Vec<Dependency>
 }
 
-struct Component {
-    name: String,
-    UDPs: Vec<UDP>,
-    DBs: Vec<DB>,
-    dependencies: Vec<Dependency>,
+#[derive(Deserialize, Serialize)]
+pub struct Component {
+    pub name: String,
+    pub UDPs: Vec<UDP>,
+    pub DBs: Vec<DB>,
+    pub dependencies: Vec<Dependency>,
 }
 
-struct project {
-    ver: String,
-    name: String,
-    standards: Vec<String>,
-    system_group: String,
-    components: Vec<Component>,
-    mains: Vec<UDP>,
-    tools: Vec<String>
+#[derive(Deserialize, Serialize)]
+pub struct Project {
+    pub ver: String,
+    pub name: String,
+    pub standards: Vec<String>,
+    pub system_group: String,
+    pub components: Vec<Component>,
+    pub mains: Vec<UDP>,
+    pub tools: Vec<String>
 }
 
-fn read() {
-
+pub struct ProjectPromise {
+    package: Project,
+    status: String
 }
 
-fn write() {
+pub enum Window {
+    prj(Project),
+    cmp(Component),
+    userdef(UDP),
+    resource(rsrc),
+    database(DB),
+    dataset(DataSet),
+    function(Func),
+    depen(Dependency),
+    default(String)
+}
 
+pub fn read(data: File)->ProjectPromise {
+    let reader = BufReader::new(data);
+    match serde_json::from_reader(reader) {
+        Ok(prj) => {
+            return ProjectPromise {package: prj, status: String::from("Success")};
+        }
+        Err(e) => {
+            return ProjectPromise {
+                package: Project {
+                    ver: String::from(""), 
+                    name: String::from(""), 
+                    standards: vec![], 
+                    system_group: String::from(""), 
+                    components: vec![], 
+                    mains: vec![], 
+                    tools: vec![]}, 
+                status: String::from("Failure")};
+        }
+    }
+}
+
+pub fn write(locat: File, prj: Project) {
+    let reader = BufWriter::new(locat);
+    match serde_json::to_writer(reader, &prj) {
+        Ok(e) => {
+            
+        }
+        Err(e) => {
+            
+        }
+    }
 }
