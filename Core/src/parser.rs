@@ -491,3 +491,14 @@ pub fn save(path: &mut Vec<Window>, file: File) {
         cd(current.0, current.1, path);
     }
 }
+
+pub fn follow_path(path: &mut Vec<Window>, given_path: &mut Vec<(String, String)>) {
+    for i in 1..given_path.len() {
+        let current = match given_path.pop() {
+            Some(last) => last,
+            None => (String::from(""), String::from(""))
+        };
+        cd(current.0, current.1, path);
+    }
+}
+
