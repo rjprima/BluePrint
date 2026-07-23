@@ -3,6 +3,7 @@ use commands::*;
 use std::sync::Mutex;
 use tauri::{Builder, Manager};
 use Core::parser::*;
+use std::fs::File;
 
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
@@ -14,7 +15,8 @@ pub fn run() {
             .level(log::LevelFilter::Info)
             .build(),
         )?;
-        app.manage(Mutex::new(curr_proj {val: None}));
+        app.manage(Mutex::new(Option::None::<File>));
+        app.manage(Mutex::new(vec![Window::default(String::from("none"))]));
       }
       Ok(())
     })

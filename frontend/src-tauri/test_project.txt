@@ -1,1 +1,0 @@
-{"ver":"1.0","name":"test_project","standards":[],"system_group":"","components":[],"mains":[],"tools":[]}

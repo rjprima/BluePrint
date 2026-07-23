@@ -75,8 +75,8 @@ pub struct Project {
 }
 
 pub struct ProjectPromise {
-    package: Project,
-    status: String
+    pub package: Project,
+    pub status: String
 }
 
 pub enum Window {
@@ -91,7 +91,7 @@ pub enum Window {
     default(String)
 }
 
-pub fn read(data: File)->ProjectPromise {
+pub fn read(data: &File)->ProjectPromise {
     let reader = BufReader::new(data);
     match serde_json::from_reader(reader) {
         Ok(prj) => {
@@ -112,7 +112,7 @@ pub fn read(data: File)->ProjectPromise {
     }
 }
 
-pub fn write(locat: File, prj: Project) {
+pub fn write(locat: &File, prj: Project) {
     let reader = BufWriter::new(locat);
     match serde_json::to_writer(reader, &prj) {
         Ok(e) => {
@@ -438,7 +438,7 @@ pub fn edit(fieldName: &str, val: String, mut path: Vec<Window>) {
 
 }
 
-pub fn save(path: &mut Vec<Window>, file: File) {
+pub fn save(path: &mut Vec<Window>, file: &File) {
     let length = path.len();
     let mut org_path: Vec<(String, String)> = vec![];
     let default = Window::default(String::from("unfound"));

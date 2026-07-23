@@ -2,23 +2,21 @@ use Core::parser::*;
 use Core::fileManager::*;
 use directories::BaseDirs;
 use std::fs;
+use std::fs::File;
 use std::fs::OpenOptions;
 use std::path::PathBuf;
 use tauri::{Builder, Manager};
 use std::sync::Mutex;
 use tauri::State;
+use std::mem;
 
-pub struct curr_proj {
-    pub val: Option<Project>
+#[tauri::command]
+pub fn enter(path_state: tauri::State<'_, Mutex<Vec<Window>>>) {
+
 }
 
 #[tauri::command]
-pub fn enter() {
-
-}
-
-#[tauri::command]
-pub fn back() {
+pub fn back(path_state: tauri::State<'_, Mutex<Vec<Window>>>) {
 
 }
 
@@ -68,7 +66,7 @@ pub fn create_file(path:&str, project_name:&str)->bool {
     print!("\n {} should match {}\n", newPath.to_string_lossy(), ex);
     match OpenOptions::new().read(true).write(true).create_new(true).open(newPath) {
         Ok(newFile) => {
-            write(newFile, base);
+            write(&newFile, base);
             print!("successfully created new project\n");
             return true;
         }
@@ -80,19 +78,61 @@ pub fn create_file(path:&str, project_name:&str)->bool {
 }
 
 #[tauri::command]
-pub fn load_file(state: tauri::State<'_, Mutex<Option<Project>>>) {
-    let mut guard = state.lock().unwrap();
-    
+pub fn delete_file(path_state: tauri::State<'_, Mutex<Vec<Window>>>,
+open_file: tauri::State<'_, Mutex<Option<File>>>, path: String) {
+    let mut path_guard = path_state.lock().unwrap();
+    let mut open_file_guard = open_file.lock().unwrap();
+    *path_guard = vec![Window::default(String::from("none"))];
+    *open_file_guard = Option::None;
+    remove_path(&path);
+    fs::remove_file(path);
 }
 
 #[tauri::command]
-pub fn save_file() {
+pub fn load_file(path_state: tauri::State<'_, Mutex<Vec<Window>>>, 
+open_file: tauri::State<'_, Mutex<Option<File>>>, file_path: &str) {
+    let mut path_guard = path_state.lock().unwrap();
+    let mut open_file_guard = open_file.lock().unwrap();
+    let file_path_buf = PathBuf::from(file_path);
+    let file_promise = OpenOptions::new().read(true).write(true).open(file_path_buf);
+    match file_promise {
+        Ok(file) => {
+            let project_promise = read(&file);
+            *open_file_guard = Option::Some(file);
+            *path_guard = vec![Window::prj(project_promise.package)];
+        }
+        Err(e) => {}
+    }
+}
 
+#[tauri::command]
+pub fn close_file(path_state: tauri::State<'_, Mutex<Vec<Window>>>, 
+open_file: tauri::State<'_, Mutex<Option<File>>>) {
+    let mut path_guard = path_state.lock().unwrap();
+    let mut open_file_guard = open_file.lock().unwrap();
+    *path_guard = vec![Window::default(String::from("none"))];
+    *open_file_guard = Option::None;
+}
+
+#[tauri::command]
+pub fn save_file(path_state: tauri::State<'_, Mutex<Vec<Window>>>, 
+open_file: tauri::State<'_, Mutex<Option<File>>>) {
+    let mut path_guard = path_state.lock().unwrap();
+    let mut open_file_guard = open_file.lock().unwrap();
+    let mut inner_data = mem::replace(&mut *open_file_guard, Option::None::<File>);
+    match inner_data {
+        Option::Some(file) => {
+            save(&mut *path_guard, &file);
+            inner_data = Option::Some(file);
+        }
+        Option::None => {}
+    }
+    *open_file_guard = inner_data;
 }
 
 #[tauri::command]
 pub fn edit_field() {
-
+    
 }
 
 #[tauri::command]
