@@ -11,13 +11,19 @@ use tauri::State;
 use std::mem;
 
 #[tauri::command]
-pub fn enter(path_state: tauri::State<'_, Mutex<Vec<Window>>>) {
-
+pub fn enter(path_state: tauri::State<'_, Mutex<Vec<Window>>>, field_type: String, name: String) {
+    let mut path_guard = path_state.lock().unwrap();
+    let mut path = mem::replace(&mut *path_guard, vec![]);
+    cd(name, field_type, &mut path);
+    *path_guard = path;
 }
 
 #[tauri::command]
 pub fn back(path_state: tauri::State<'_, Mutex<Vec<Window>>>) {
-
+    let mut path_guard = path_state.lock().unwrap();
+    let mut path = mem::replace(&mut *path_guard, vec![]);
+    cd_back(&mut path);
+    *path_guard = path;
 }
 
 #[tauri::command]
@@ -131,13 +137,14 @@ open_file: tauri::State<'_, Mutex<Option<File>>>) {
 }
 
 #[tauri::command]
-pub fn edit_field() {
-    
+pub fn edit_field(path_state: tauri::State<'_, Mutex<Vec<Window>>>, fieldName: &str, val: String) {
+    let mut path_guard = path_state.lock().unwrap();
+    edit(fieldName, val, &mut path_guard);
 }
 
 #[tauri::command]
 pub fn add_dependency() {
-
+    
 }
 
 #[tauri::command]

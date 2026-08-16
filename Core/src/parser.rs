@@ -9,7 +9,8 @@ use serde_json;
 pub struct Dependency {
     pub src: String,
     pub src_type: String,
-    pub com_interface: String
+    pub com_interface: String,
+    pub path: String
 }
 
 #[derive(Deserialize, Serialize)]
@@ -342,7 +343,7 @@ pub fn cd_back(path: &mut Vec<Window>) {
     }
 }
 
-pub fn edit(fieldName: &str, val: String, mut path: Vec<Window>) {
+pub fn edit(fieldName: &str, val: String, path: &mut Vec<Window>) {
     let current = match path.pop() {
         Some(last) => last,
         None => Window::default(String::from("unfound"))
