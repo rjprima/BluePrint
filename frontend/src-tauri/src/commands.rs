@@ -144,10 +144,22 @@ pub fn edit_field(path_state: tauri::State<'_, Mutex<Vec<Window>>>, fieldName: &
 
 #[tauri::command]
 pub fn add_dependency() {
-    
+
 }
 
 #[tauri::command]
-pub fn add_x() {
+pub fn add_x(path_state: tauri::State<'_, Mutex<Vec<Window>>>, field_name: &str, init_val: String) {
+    let mut path_guard = path_state.lock().unwrap();
+    add(&mut path_guard, field_name, init_val);
+}
+
+#[tauri::command]
+pub fn remove_x(path_state: tauri::State<'_, Mutex<Vec<Window>>>, field_name: &str, ID: usize) {
+    let mut path_guard = path_state.lock().unwrap();
+    remove(&mut path_guard, field_name, ID);
+}
+
+#[tauri::command]
+pub fn request_x() {
     
 }

@@ -5,7 +5,7 @@ use std::collections::HashMap;
 use serde::{Deserialize, Serialize};
 use serde_json;
 
-#[derive(Deserialize, Serialize)]
+#[derive(Deserialize, Serialize, Clone)]
 pub struct Dependency {
     pub src: String,
     pub src_type: String,
@@ -13,7 +13,7 @@ pub struct Dependency {
     pub path: String
 }
 
-#[derive(Deserialize, Serialize)]
+#[derive(Deserialize, Serialize, Clone)]
 pub struct Func {
     pub name: String,
     pub pre_con: String,
@@ -25,13 +25,13 @@ pub struct Func {
     pub description: String
 }
 
-#[derive(Deserialize, Serialize)]
+#[derive(Deserialize, Serialize, Clone)]
 pub struct DataSet {
     pub ID: String,
     pub properties: Vec<String>
 }
 
-#[derive(Deserialize, Serialize)]
+#[derive(Deserialize, Serialize, Clone)]
 pub struct DB {
     pub name: String,
     pub manage_sys: String,
@@ -40,7 +40,7 @@ pub struct DB {
     pub src: String
 }
 
-#[derive(Deserialize, Serialize)]
+#[derive(Deserialize, Serialize, Clone)]
 pub struct rsrc {
     pub name: String
 }
@@ -343,57 +343,47 @@ pub fn cd_back(path: &mut Vec<Window>) {
     }
 }
 
-pub fn edit(fieldName: &str, val: String, path: &mut Vec<Window>) {
+pub fn edit(field_name: &str, val: String, path: &mut Vec<Window>) {
     let current = match path.pop() {
         Some(last) => last,
         None => Window::default(String::from("unfound"))
     };
     match current {
         Window::prj(mut x) => {
-            match fieldName {
+            match field_name {
                 "ver" => {x.ver = val;}
                 "name" => {x.name = val;}
                 "standards" => {}
                 "system_group" => {x.system_group = val;}
-                "components" => {}
-                "mains" => {}
-                "tools" => {}
                 _ => {}
             }
             path.push(Window::prj(x));
         }
         Window::cmp(mut x) => {
-            match fieldName {
+            match field_name {
                 "name" => {x.name = val;}
-                "UDPs" => {}
-                "DBs" => {}
-                "dependencies" => {}
                 _ => {}
             }
             path.push(Window::cmp(x));
         }
         Window::userdef(mut x) => {
-            match fieldName {
+            match field_name {
                 "name" => {x.name = val;}
                 "lang_type" => {x.lang_type = val;}
                 "language" => {x.language = val;}
-                "functions" => {}
-                "class_vars" => {}
-                "structs" => {}
-                "dependencies" => {}
                 _ => {}
             }
             path.push(Window::userdef(x));
         }
         Window::resource(mut x) => {
-            match fieldName {
+            match field_name {
                 "name" => {x.name = val;}
                 _ => {}
             }
             path.push(Window::resource(x));
         }
         Window::database(mut x) => {
-            match fieldName {
+            match field_name {
                 "name" => {x.name = val;}
                 "manage_sys" => {x.manage_sys = val;}
                 "data_sets" => {}
@@ -404,7 +394,7 @@ pub fn edit(fieldName: &str, val: String, path: &mut Vec<Window>) {
             path.push(Window::database(x));
         }
         Window::dataset(mut x) => {
-            match fieldName {
+            match field_name {
                 "ID" => {x.ID = val;}
                 "properties" => {}
                 _ => {}
@@ -412,21 +402,19 @@ pub fn edit(fieldName: &str, val: String, path: &mut Vec<Window>) {
             path.push(Window::dataset(x));
         }
         Window::function(mut x) => {
-            match fieldName {
+            match field_name {
                 "name" => {x.name = val;}
                 "pre_con" => {x.pre_con = val;}
                 "post_con" => {x.post_con = val;}
                 "impl_details" => {x.impl_details = val;}
-                "params" => {}
                 "ret_val" => {x.ret_val = val;}
-                "dependencies" => {}
                 "description" => {x.description = val;}
                 _ => {}
             }
             path.push(Window::function(x));
         }
         Window::depen(mut x) => {
-            match fieldName {
+            match field_name {
                 "src" => {x.src = val;}
                 "src_type" => {x.src_type = val;}
                 "com_interface" => {x.com_interface = val;}
@@ -503,3 +491,261 @@ pub fn follow_path(path: &mut Vec<Window>, given_path: &mut Vec<(String, String)
     }
 }
 
+pub fn add(path: &mut Vec<Window>, field_name: &str, init_val: String) {
+    let curr = match path.pop() {
+        Some(last) => last,
+        None => Window::default(String::from("unfound"))
+    };
+    match curr {
+        Window::prj(mut x) => {
+            match field_name {
+                "standards" => {
+                    x.standards.push(init_val);
+                }
+                "components" => {
+                    x.components.push(Component {
+                        name: init_val,
+                        UDPs: vec![],
+                        DBs: vec![],
+                        dependencies: vec![]
+                    });
+                }
+                "tools" => {
+                    x.tools.push(init_val);
+                }
+                _ => {}
+            }
+            path.push(Window::prj(x));
+        }
+        Window::cmp(mut x) => {
+            match field_name {
+                "UDPs" => {
+                    x.UDPs.push(UDP {
+                        name: init_val,
+                        lang_type: String::from(""),
+                        language: String::from(""),
+                        functions: vec![],
+                        class_vars: vec![],
+                        structs: vec![],
+                        dependencies: vec![]
+                    })
+                }
+                "DBs" => {
+                    x.DBs.push(DB {
+                        name: init_val,
+                        manage_sys: String::from(""),
+                        data_sets: vec![],
+                        dependencies: vec![],
+                        src: String::from("")
+                    })
+                }
+                _ => {}
+            }
+            path.push(Window::cmp(x));
+        }
+        Window::userdef(mut x) => {
+            match field_name {
+                "functions" => {
+                    x.functions.push(Func {
+                        name: init_val,
+                        pre_con: String::from(""),
+                        post_con: String::from(""),
+                        impl_details: String::from(""),
+                        params: vec![],
+                        ret_val: String::from(""),
+                        dependencies: vec![],
+                        description: String::from("")
+                    })
+                }
+                "class_vars" => {
+                    x.class_vars.push(init_val);
+                }
+                "structs" => {
+                    let mut temp = HashMap::new();
+                    temp.insert(String::from("name"), init_val);
+                    x.structs.push(temp);
+                }
+                _ => {}
+            }
+            path.push(Window::userdef(x));
+        }
+        Window::function(mut x) => {
+            x.params.push(String::from(""));
+            path.push(Window::function(x));
+        }
+        Window::database(mut x) => {
+            x.data_sets.push(DataSet {
+                ID: init_val,
+                properties: vec![],
+            });
+            path.push(Window::database(x));
+        }
+        Window::dataset(mut x) => {
+            x.properties.push(init_val);
+            path.push(Window::dataset(x));
+        }
+        _ => {}
+    }
+}
+
+pub fn remove(path: &mut Vec<Window>, field_name: &str, ID: usize) {
+    let curr = match path.pop() {
+        Some(last) => last,
+        None => Window::default(String::from("unfound"))
+    };
+    match curr {
+        Window::prj(mut x) => {
+            match field_name {
+                "standards" => {
+                    x.standards.remove(ID);
+                }
+                "components" => {
+                    x.components.remove(ID);
+                }
+                "tools" => {
+                    x.tools.remove(ID);
+                }
+                _ => {}
+            }
+            path.push(Window::prj(x));
+        }
+        Window::cmp(mut x) => {
+            match field_name {
+                "UDPs" => {
+                    x.UDPs.remove(ID);
+                }
+                "DBs" => {
+                    x.DBs.remove(ID);
+                }
+                _ => {}
+            }
+            path.push(Window::cmp(x));
+        }
+        Window::userdef(mut x) => {
+            match field_name {
+                "functions" => {
+                    x.functions.remove(ID);
+                }
+                "class_vars" => {
+                    x.class_vars.remove(ID);
+                }
+                "structs" => {
+                    x.structs.remove(ID);;
+                }
+                _ => {}
+            }
+            path.push(Window::userdef(x));
+        }
+        Window::function(mut x) => {
+            x.params.remove(ID);;
+            path.push(Window::function(x));
+        }
+        Window::database(mut x) => {
+            x.data_sets.remove(ID);
+            path.push(Window::database(x));
+        }
+        Window::dataset(mut x) => {
+            x.properties.remove(ID);;
+            path.push(Window::dataset(x));
+        }
+        _ => {}
+    }
+}
+
+pub fn strip(path: &mut Vec<Window>) -> Window {
+    let curr = match path.pop() {
+        Some(last) => last,
+        None => Window::default(String::from("unfound"))
+    };
+    let mut ret = Window::default(String::from(""));
+    match curr {
+        Window::prj(x) => {
+            let mut temp = Project {
+                name: x.name.clone(),
+                ver: x.ver.clone(),
+                standards: x.standards.clone(),
+                system_group: x.system_group.clone(),
+                components: vec![],
+                mains: vec![],
+                tools: x.tools.clone(),
+            };
+            for i in 0..x.components.len() {
+                temp.components.push(Component {
+                    name: x.components[i].name.clone(),
+                    UDPs: vec![],
+                    DBs: vec![],
+                    dependencies: x.components[i].dependencies.clone()
+                });
+            }
+            for i in 0..x.mains.len() {
+                temp.mains.push(UDP {
+                    name: x.mains[i].name.clone(),
+                    lang_type: String::from(""),
+                    language: String::from(""),
+                    functions: vec![],
+                    class_vars: vec![],
+                    structs: vec![],
+                    dependencies: x.mains[i].dependencies.clone()
+                });
+            }
+            path.push(Window::prj(x));
+            ret = Window::prj(temp);
+        }
+        Window::cmp(x) => {
+            let mut temp = Component {
+                name: x.name.clone(),
+                UDPs: vec![],
+                DBs: vec![],
+                dependencies: x.dependencies.clone()
+            };
+            for i in 0..x.UDPs.len() {
+                temp.UDPs.push(UDP {
+                    name: x.UDPs[i].name.clone(),
+                    lang_type: String::from(""),
+                    language: String::from(""),
+                    functions: vec![],
+                    class_vars: vec![],
+                    structs: vec![],
+                    dependencies: x.UDPs[i].dependencies.clone()
+                });
+            }
+            for i in 0..x.DBs.len() {
+                temp.DBs.push(DB {
+                    name: x.DBs[i].name.clone(),
+                    src: String::from(""),
+                    manage_sys: x.DBs[i].manage_sys.clone(),
+                    data_sets: vec![],
+                    dependencies: x.DBs[i].dependencies.clone()
+                });
+            }
+            path.push(Window::cmp(x));
+            ret = Window::cmp(temp);
+        }
+        Window::userdef(x) => {
+            let mut temp = UDP {
+                name: x.name.clone(),
+                lang_type: x.lang_type.clone(),
+                language: x.language.clone(),
+                functions: x.functions.clone(),
+                class_vars: x.class_vars.clone(),
+                structs: x.structs.clone(),
+                dependencies: x.dependencies.clone()
+            };
+            path.push(Window::userdef(x));
+            ret = Window::userdef(temp);
+        }
+        Window::database(x) => {
+            let mut temp = DB {
+                name: x.name.clone(),
+                manage_sys: x.manage_sys.clone(),
+                data_sets: x.data_sets.clone(),
+                dependencies: x.dependencies.clone(),
+                src: x.src.clone()
+            };
+            path.push(Window::database(x));
+            ret = Window::database(temp);
+        }
+        _ => {}
+    }
+    return ret;
+}
