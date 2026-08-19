@@ -7,10 +7,12 @@ use serde_json;
 
 #[derive(Deserialize, Serialize, Clone)]
 pub struct Dependency {
+    pub ID: String,
     pub src: String,
     pub src_type: String,
     pub com_interface: String,
-    pub path: String
+    pub path: String,
+    pub in_program: bool
 }
 
 #[derive(Deserialize, Serialize, Clone)]
@@ -42,7 +44,8 @@ pub struct DB {
 
 #[derive(Deserialize, Serialize, Clone)]
 pub struct rsrc {
-    pub name: String
+    pub name: String,
+    pub rsrc_type: String
 }
 
 #[derive(Deserialize, Serialize)]
@@ -62,6 +65,7 @@ pub struct Component {
     pub UDPs: Vec<UDP>,
     pub DBs: Vec<DB>,
     pub dependencies: Vec<Dependency>,
+    pub resources: Vec<rsrc>
 }
 
 #[derive(Deserialize, Serialize)]
@@ -80,6 +84,7 @@ pub struct ProjectPromise {
     pub status: String
 }
 
+#[derive(Deserialize, Serialize)]
 pub enum Window {
     prj(Project),
     cmp(Component),
@@ -129,11 +134,12 @@ pub fn write(locat: &File, prj: Project) {
 first match is destination, second match is origin. takes the origin "unpacks" the correct
 component and then adds both to path as separate objects with ownership
 */
-pub fn cd(name: String, locat: String, path: &mut Vec<Window>) {
+pub fn cd(name: String, locat: String, path: &mut Vec<Window>) -> bool {
     let last_enum = match path.pop() {
         Some(last) => last,
         None => Window::default(String::from("unfound"))
     };
+    let mut found = false;
     match locat.as_str() {
         "component" => {
             match last_enum {
@@ -142,18 +148,21 @@ pub fn cd(name: String, locat: String, path: &mut Vec<Window>) {
                         name: String::from("default"),
                         UDPs: vec![],
                         DBs: vec![],
-                        dependencies: vec![]
+                        dependencies: vec![],
+                        resources: vec![]
                     };
                     for i in 0..x.components.len()-1 {
                         if x.components[i].name == name {
                             temp = x.components.remove(i);
+                            found = true;
                             break;
                         }
                     }
                     path.push(Window::prj(x));
-                    path.push(Window::cmp(temp));
+                    if (found) {
+                        path.push(Window::cmp(temp));
+                    }
                 }
-                Window::cmp(x) => {}
                 _ => {println!("does not contain components");}
             }            
         }
@@ -172,13 +181,15 @@ pub fn cd(name: String, locat: String, path: &mut Vec<Window>) {
                     for i in 0..x.UDPs.len()-1 {
                         if x.UDPs[i].name == name {
                             temp = x.UDPs.remove(i);
+                            found = true;
                             break;
                         }
                     }
                     path.push(Window::cmp(x));
-                    path.push(Window::userdef(temp));
+                    if (found) {
+                        path.push(Window::userdef(temp));
+                    }
                 }
-                Window::userdef(mut x) => {}
                 Window::prj(mut x) => {
                     let mut temp = UDP {
                         name: String::from("default"),
@@ -192,11 +203,14 @@ pub fn cd(name: String, locat: String, path: &mut Vec<Window>) {
                     for i in 0..x.mains.len()-1 {
                         if x.mains[i].name == name {
                             temp = x.mains.remove(i);
+                            found = true;
                             break;
                         }
                     }
                     path.push(Window::prj(x));
-                    path.push(Window::userdef(temp));
+                    if (found) {
+                        path.push(Window::userdef(temp));
+                    }
                 }
                 _ => {println!("does not contain components");}
             }
@@ -214,17 +228,104 @@ pub fn cd(name: String, locat: String, path: &mut Vec<Window>) {
                     for i in 0..x.DBs.len()-1 {
                         if x.DBs[i].name == name {
                             temp = x.DBs.remove(i);
+                            found = true;
                             break;
                         }
                     }
                     path.push(Window::cmp(x));
-                    path.push(Window::database(temp));
+                    if (found) {
+                        path.push(Window::database(temp));
+                    }
                 }
                 _ => {println!("does not contain components");}
             }
         }
         "dependency" => {
             match last_enum {
+                Window::cmp(mut x) => {
+                    let mut temp = Dependency {
+                        ID: String::from(""),
+                        src: String::from(""),
+                        src_type: String::from(""),
+                        com_interface: String::from(""),
+                        path: String::from(""),
+                        in_program: false
+                    };
+                    for i in 0..x.dependencies.len()-1 {
+                        if x.dependencies[i].ID == name {
+                            temp = x.dependencies.remove(i);
+                            found = true;
+                            break;
+                        }
+                    }
+                    path.push(Window::cmp(x));
+                    if (found) {
+                        path.push(Window::depen(temp));
+                    }
+                }
+                Window::userdef(mut x) => {
+                    let mut temp = Dependency {
+                        ID: String::from(""),
+                        src: String::from(""),
+                        src_type: String::from(""),
+                        com_interface: String::from(""),
+                        path: String::from(""),
+                        in_program: false
+                    };
+                    for i in 0..x.dependencies.len()-1 {
+                        if x.dependencies[i].ID == name {
+                            temp = x.dependencies.remove(i);
+                            found = true;
+                            break;
+                        }
+                    }
+                    path.push(Window::userdef(x));
+                    if (found) {
+                        path.push(Window::depen(temp));
+                    }
+                }
+                Window::database(mut x) => {
+                    let mut temp = Dependency {
+                        ID: String::from(""),
+                        src: String::from(""),
+                        src_type: String::from(""),
+                        com_interface: String::from(""),
+                        path: String::from(""),
+                        in_program: false
+                    };
+                    for i in 0..x.dependencies.len()-1 {
+                        if x.dependencies[i].ID == name {
+                            temp = x.dependencies.remove(i);
+                            found = true;
+                            break;
+                        }
+                    }
+                    path.push(Window::database(x));
+                    if (found) {
+                        path.push(Window::depen(temp));
+                    }
+                }
+                Window::function(mut x) => {
+                    let mut temp = Dependency {
+                        ID: String::from(""),
+                        src: String::from(""),
+                        src_type: String::from(""),
+                        com_interface: String::from(""),
+                        path: String::from(""),
+                        in_program: false
+                    };
+                    for i in 0..x.dependencies.len()-1 {
+                        if x.dependencies[i].ID == name {
+                            temp = x.dependencies.remove(i);
+                            found = true;
+                            break;
+                        }
+                    }
+                    path.push(Window::function(x));
+                    if (found) {
+                        path.push(Window::depen(temp));
+                    }
+                }
                 _ => {println!("does not contain components");}
             }
         }
@@ -244,11 +345,14 @@ pub fn cd(name: String, locat: String, path: &mut Vec<Window>) {
                     for i in 0..x.functions.len()-1 {
                         if x.functions[i].name == name {
                             temp = x.functions.remove(i);
+                            found = true;
                             break;
                         }
                     }
                     path.push(Window::userdef(x));
-                    path.push(Window::function(temp));
+                    if (found) {
+                        path.push(Window::function(temp));
+                    }
                 }
                 _ => {println!("does not contain components");}
             }
@@ -263,22 +367,43 @@ pub fn cd(name: String, locat: String, path: &mut Vec<Window>) {
                     for i in 0..x.data_sets.len()-1 {
                         if x.data_sets[i].ID == name {
                             temp = x.data_sets.remove(i);
+                            found = true;
                             break;
                         }
                     }
                     path.push(Window::database(x));
-                    path.push(Window::dataset(temp));
+                    if (found) {
+                        path.push(Window::dataset(temp));
+                    }
                 }
                 _ => {println!("does not contain components");}
             }
         }
         "resource" => {
             match last_enum {
+                Window::cmp(mut x) => {
+                    let mut temp = rsrc {
+                        name: String::from("default"),
+                        rsrc_type: String::from("default")
+                    };
+                    for i in 0..x.resources.len()-1 {
+                        if x.resources[i].name == name {
+                            temp = x.resources.remove(i);
+                            found = true;
+                            break;
+                        }
+                    }
+                    path.push(Window::cmp(x));
+                    if (found) {
+                        path.push(Window::resource(temp));
+                    }
+                }
                 _ => {println!("does not contain components");}
             }
         }
         _ => {}
     }
+    return found;
 }
 
 pub fn cd_back(path: &mut Vec<Window>) {
@@ -415,9 +540,11 @@ pub fn edit(field_name: &str, val: String, path: &mut Vec<Window>) {
         }
         Window::depen(mut x) => {
             match field_name {
+                "ID" => {x.ID = val;}
                 "src" => {x.src = val;}
                 "src_type" => {x.src_type = val;}
                 "com_interface" => {x.com_interface = val;}
+                "path" => {x.path = val;}
                 _ => {}
             }
             path.push(Window::depen(x));
@@ -507,7 +634,8 @@ pub fn add(path: &mut Vec<Window>, field_name: &str, init_val: String) {
                         name: init_val,
                         UDPs: vec![],
                         DBs: vec![],
-                        dependencies: vec![]
+                        dependencies: vec![],
+                        resources: vec![]
                     });
                 }
                 "tools" => {
@@ -539,6 +667,16 @@ pub fn add(path: &mut Vec<Window>, field_name: &str, init_val: String) {
                         src: String::from("")
                     })
                 }
+                "dependency" => {
+                    x.dependencies.push(Dependency {
+                        ID: init_val,
+                        src: String::from(""),
+                        src_type: String::from(""),
+                        com_interface: String::from(""),
+                        path: String::from(""),
+                        in_program: false
+                    });
+                }
                 _ => {}
             }
             path.push(Window::cmp(x));
@@ -565,19 +703,59 @@ pub fn add(path: &mut Vec<Window>, field_name: &str, init_val: String) {
                     temp.insert(String::from("name"), init_val);
                     x.structs.push(temp);
                 }
+                "dependency" => {
+                    x.dependencies.push(Dependency {
+                        ID: init_val,
+                        src: String::from(""),
+                        src_type: String::from(""),
+                        com_interface: String::from(""),
+                        path: String::from(""),
+                        in_program: false
+                    });
+                }
                 _ => {}
             }
             path.push(Window::userdef(x));
         }
         Window::function(mut x) => {
-            x.params.push(String::from(""));
+            match field_name {
+                "params" => {
+                    x.params.push(String::from(""));
+                }
+                "dependency" => {
+                    x.dependencies.push(Dependency {
+                        ID: init_val,
+                        src: String::from(""),
+                        src_type: String::from(""),
+                        com_interface: String::from(""),
+                        path: String::from(""),
+                        in_program: false
+                    });
+                }
+                _ => {}
+            }
             path.push(Window::function(x));
         }
         Window::database(mut x) => {
-            x.data_sets.push(DataSet {
-                ID: init_val,
-                properties: vec![],
-            });
+            match field_name {
+                "data_sets" => {
+                    x.data_sets.push(DataSet {
+                        ID: init_val,
+                        properties: vec![],
+                    });
+                }
+                "dependencies" => {
+                    x.dependencies.push(Dependency {
+                        ID: init_val,
+                        src: String::from(""),
+                        src_type: String::from(""),
+                        com_interface: String::from(""),
+                        path: String::from(""),
+                        in_program: false
+                    });
+                }
+                _ => {}
+            }
             path.push(Window::database(x));
         }
         Window::dataset(mut x) => {
@@ -674,7 +852,8 @@ pub fn strip(path: &mut Vec<Window>) -> Window {
                     name: x.components[i].name.clone(),
                     UDPs: vec![],
                     DBs: vec![],
-                    dependencies: x.components[i].dependencies.clone()
+                    dependencies: x.components[i].dependencies.clone(),
+                    resources: vec![]
                 });
             }
             for i in 0..x.mains.len() {
@@ -696,7 +875,8 @@ pub fn strip(path: &mut Vec<Window>) -> Window {
                 name: x.name.clone(),
                 UDPs: vec![],
                 DBs: vec![],
-                dependencies: x.dependencies.clone()
+                dependencies: x.dependencies.clone(),
+                resources: x.resources.clone()
             };
             for i in 0..x.UDPs.len() {
                 temp.UDPs.push(UDP {
@@ -749,3 +929,201 @@ pub fn strip(path: &mut Vec<Window>) -> Window {
     }
     return ret;
 }
+
+pub fn linearize(path: &mut Vec<Window>) -> Vec<Vec<String>> {
+    let mut components = vec![];
+    let mut UDPs = vec![];
+    let mut functions = vec![];
+    let mut databases = vec![];
+    let mut structs = vec![];
+    let mut resources = vec![];
+    let curr = match path.pop() {
+        Some(last) => last,
+        None => Window::default(String::from("unfound"))
+    };
+    match curr {
+        Window::prj(x) => {
+            for i in 0..x.components.len() {
+                components.push(x.components[i].name.clone());
+                for j in 0..x.components[i].DBs.len() {
+                    databases.push(x.components[i].DBs[j].name.clone());
+                }
+                for j in 0..x.components[i].resources.len() {
+                    resources.push(x.components[i]. resources[j].name.clone());
+                }
+                for j in 0..x.components[i].UDPs.len() {
+                    UDPs.push(x.components[i].UDPs[j].name.clone());
+                    for k in 0..x.components[i].UDPs[j].functions.len() {
+                        functions.push(x.components[i].UDPs[j].functions[k].name.clone());
+                    }
+                    for j in 0..x.mains[i].structs.len() {
+                        let temp = x.mains[i].structs[j].get("name");
+                        match temp {
+                            Option::Some(t) => {
+                                structs.push(String::from(t));
+                            }
+                            None => {}
+                        }
+                    }
+                }
+            }
+            for i in 0..x.mains.len() {
+                UDPs.push(x.mains[i].name.clone());
+                for j in 0..x.mains[i].functions.len() {
+                    functions.push(x.mains[i].functions[j].name.clone());
+                }
+                for j in 0..x.mains[i].structs.len() {
+                    let temp = x.mains[i].structs[j].get("name");
+                    match temp {
+                        Option::Some(t) => {
+                            structs.push(String::from(t));
+                        }
+                        None => {}
+                    }
+                }
+            }
+        }
+        _ => {}
+    }
+    return vec![components, UDPs, functions, databases, structs, resources];
+}
+
+pub fn find(path: &mut Vec<Window>, name: String, locat: &str) -> Vec<(String, String)> {
+    let length = path.len();
+    let mut org_path: Vec<(String, String)> = vec![];
+    let default = Window::default(String::from("unfound"));
+    for i in 2..length {
+        let current = match path.last() {
+            Some(last) => last,
+            None => &default
+        };
+        match current {
+            Window::cmp(x) => {
+                org_path.push((x.name.clone(), String::from("component")));
+            }
+            Window::userdef(x) => {
+                org_path.push((x.name.clone(), String::from("UDP")));
+            }
+            Window::resource(x) => {
+                org_path.push((x.name.clone(), String::from("resource")));
+            }
+            Window::database(x) => {
+                org_path.push((x.name.clone(), String::from("DB")));
+            }
+            Window::dataset(x) => {
+                org_path.push((x.ID.clone(), String::from("dataset")));
+            }
+            Window::function(x) => {
+                org_path.push((x.name.clone(), String::from("function")));
+            }
+            Window::depen(x) => {
+                org_path.push((String::from(""), String::from("dependency")));
+            }
+            _ => {}
+        }
+        cd_back(path);
+    }
+    let mut found = false;
+    let mut wrapper = match path.pop() {
+        Some(last) => last,
+        None => Window::default(String::from("unfound"))
+    };
+    let Window::prj(mut curr) = wrapper else {
+        panic!("Runtime Error: expected wrapper to be project");
+    };
+    match locat {
+        "component" => {
+            path.push(Window::prj(curr));
+            cd(name.clone(), String::from("component"), path);
+        }
+        "UDP" => {
+            path.push(Window::prj(curr));
+            if (cd(name.clone(), String::from(locat), path)) {
+                found = true;
+            }
+            if (!found) {
+                wrapper = match path.pop() {
+                Some(last) => last,
+                None => Window::default(String::from("unfound"))
+                };
+                let Window::prj(mut curr) = wrapper else {
+                panic!("Runtime Error: expected wrapper to be project");
+                };
+                let mut temp = vec![];
+                for i in &curr.components {
+                    temp.push(i.name.clone());
+                }
+                path.push(Window::prj(curr));
+                for i in temp {
+                    cd(i, String::from("component"), path);
+                    if (cd(name.clone(), String::from("UDP"), path)) {
+                        found = true;
+                        break;
+                    }
+                    cd_back(path);
+                }
+            }
+        }
+        "function" => {
+            let mut temp1 = vec![];
+            let mut temp2 = vec![];
+            for i in &curr.components {
+                temp1.push(i.name.clone());
+            }
+            path.push(Window::prj(curr));
+            for i in temp1 {
+                cd(i, String::from("component"), path);
+                let mut wrapper = match path.pop() {
+                    Some(last) => last,
+                    None => Window::default(String::from("unfound"))
+                };
+                let Window::cmp(mut curr) = wrapper else {
+                    panic!("Runtime Error: expected wrapper to be project");
+                };
+                for j in &curr.UDPs {
+                    temp2.push(j.name.clone());
+                }
+                path.push(Window::cmp(curr));
+                for j in 0..temp2.len() {
+                    cd(temp2[j].clone(), String::from("UDP"), path);
+                    if (cd(name.clone(), String::from("function"), path)) {
+                        found = true;
+                        break;
+                    }
+                }
+                cd_back(path);
+            }
+        }
+        "DB" => {
+            let mut temp = vec![];
+            for i in curr.components {
+                temp.push(i.name.clone());
+            }
+            for i in temp {
+                cd(i, String::from("DBs"), path);
+                if (cd(name.clone(), String::from("DB"), path)) {
+                    found = true;
+                    break;
+                }
+                cd_back(path);
+            }
+        }
+        "resource" => {
+            let mut temp = vec![];
+            for i in curr.components {
+                temp.push(i.name.clone());
+            }
+            for i in temp {
+                cd(i, String::from("resources"), path);
+                if (cd(name.clone(), String::from("resource"), path)) {
+                    found = true;
+                    break;
+                }
+                cd_back(path);
+            }
+        }
+        _ => {}
+    }
+    return org_path;
+}
+

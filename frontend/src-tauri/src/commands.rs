@@ -96,9 +96,11 @@ open_file: tauri::State<'_, Mutex<Option<File>>>, path: String) {
 
 #[tauri::command]
 pub fn load_file(path_state: tauri::State<'_, Mutex<Vec<Window>>>, 
-open_file: tauri::State<'_, Mutex<Option<File>>>, file_path: &str) {
+open_file: tauri::State<'_, Mutex<Option<File>>>, 
+index: tauri::State<'_, Mutex<Vec<Vec<String>>>>, file_path: &str) {
     let mut path_guard = path_state.lock().unwrap();
     let mut open_file_guard = open_file.lock().unwrap();
+    let mut index_guard = index.lock().unwrap();
     let file_path_buf = PathBuf::from(file_path);
     let file_promise = OpenOptions::new().read(true).write(true).open(file_path_buf);
     match file_promise {
@@ -106,6 +108,7 @@ open_file: tauri::State<'_, Mutex<Option<File>>>, file_path: &str) {
             let project_promise = read(&file);
             *open_file_guard = Option::Some(file);
             *path_guard = vec![Window::prj(project_promise.package)];
+            *index_guard = linearize(&mut path_guard);
         }
         Err(e) => {}
     }
@@ -113,11 +116,14 @@ open_file: tauri::State<'_, Mutex<Option<File>>>, file_path: &str) {
 
 #[tauri::command]
 pub fn close_file(path_state: tauri::State<'_, Mutex<Vec<Window>>>, 
-open_file: tauri::State<'_, Mutex<Option<File>>>) {
+open_file: tauri::State<'_, Mutex<Option<File>>>,
+index: tauri::State<'_, Mutex<Vec<Vec<String>>>>) {
     let mut path_guard = path_state.lock().unwrap();
     let mut open_file_guard = open_file.lock().unwrap();
+    let mut index_guard = index.lock().unwrap();
     *path_guard = vec![Window::default(String::from("none"))];
     *open_file_guard = Option::None;
+    *index_guard = vec![];
 }
 
 #[tauri::command]
@@ -143,8 +149,12 @@ pub fn edit_field(path_state: tauri::State<'_, Mutex<Vec<Window>>>, fieldName: &
 }
 
 #[tauri::command]
-pub fn add_dependency() {
-
+pub fn add_dependency(path_state: tauri::State<'_, Mutex<Vec<Window>>>,
+    ID: String, source: String, source_type: String, in_program: bool, ) {
+    let mut path_guard = path_state.lock().unwrap();
+    add(&mut path_guard, "dependency", ID);
+    edit("src", source, &mut path_guard);
+    edit("src_type", source_type, &mut path_guard);
 }
 
 #[tauri::command]
@@ -160,6 +170,7 @@ pub fn remove_x(path_state: tauri::State<'_, Mutex<Vec<Window>>>, field_name: &s
 }
 
 #[tauri::command]
-pub fn request_x() {
-    
+pub fn request_x(path_state: tauri::State<'_, Mutex<Vec<Window>>>) -> Window {
+    let mut path_guard = path_state.lock().unwrap();
+    return strip(&mut path_guard);
 }

@@ -17,10 +17,12 @@ pub fn run() {
         )?;
         app.manage(Mutex::new(Option::None::<File>));
         app.manage(Mutex::new(vec![Window::default(String::from("none"))]));
+        app.manage(Mutex::new(vec![vec![String::from("")]])); //stored components, UDPs, functions, databases, structs, resources
       }
       Ok(())
     })
-    .invoke_handler(tauri::generate_handler![get_file_paths, create_file])
+    .invoke_handler(tauri::generate_handler![get_file_paths, create_file, delete_file, load_file, close_file, back, enter, 
+      save_file, edit_field, add_dependency, add_x, remove_x, request_x])
     .run(tauri::generate_context!())
     .expect("error while running tauri application");
 }
